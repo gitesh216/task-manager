@@ -1,5 +1,4 @@
 import { asyncHandler } from "../utils/async-handler.js";
-import { JsonWebTokenError } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import { sendMail, emailVerificationMailGenContent } from "../utils/mail.js";
@@ -9,6 +8,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken"
 import { ApiError } from "../utils/api-error.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { log } from "console";
 
 dotenv.config();
 
@@ -25,30 +25,32 @@ const isImageUploadedLocal = asyncHandler(async (req, res) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     const { email, username, password, fullname } = req.body;
-
-    const existingUser = User.findOne({ email: email });
-    if (existingUser) {
+    console.log(email);
+    
+    const existingUser = User.findOne({ email });
+    if (!existingUser) {
+        console.log(existingUser.email);
         throw new ApiError(409,"User with email or username already exists")
     }
-    const avatarImageLocalPath = req.file?.path
-    if(!avatarImageLocalPath){
-        throw new ApiError(400,"Avatar file is required")
-    }
-    const avatar = uploadOnCloudinary(avatarImageLocalPath, "avatars");
+    // const avatarImageLocalPath = req.file?.path
+    // if(!avatarImageLocalPath){
+    //     throw new ApiError(400,"Avatar file is required")
+    // }
+    // const avatar = uploadOnCloudinary(avatarImageLocalPath, "avatars");
 
-    if(!avatar){
-        throw new ApiError(400,"Error while uploading image on Cloudinary");
-    }
+    // if(!avatar){
+    //     throw new ApiError(400,"Error while uploading image on Cloudinary");
+    // }
 
     const newUser = await User.create({
         username,
         email,
         password,
         fullname,
-        avatar: {
-            url: avatar.url,
-            localPath: avatarImageLocalPath
-        }
+        // avatar: {
+        //     url: avatar.url,
+        //     localPath: avatarImageLocalPath
+        // }
     });
 
     if (!newUser) {
@@ -76,25 +78,26 @@ const registerUser = asyncHandler(async (req, res) => {
 
     await sendMail(options);
 
-    const createdUser = User.findById(newUser._id).select(
-        "-password -refreshToken -avatar -emailVerificationToken -emailVerificationExpiry"
+    const createdUser = await User.findById(newUser._id).select(
+        "-password -emailVerificationToken -emailVerificationExpiry"
     )
-
+    console.log(createdUser);
+    
     return res.status(201).json(
-        new ApiResponse(200, createdUser, "User Registered Successfully")
+        new ApiResponse(200, {email: createdUser.email}, "User Registered Successfully")
     );
 });
 
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    const user = User.findOne({ email: email });
+    const user = await User.findOne({ email: email });
     if (!user) {
         return res
             .status(400)
             .json(new ApiResponse(400, null, "Invalid user or password"));
     }
-    const isMatch = user.isPasswordCorrect(password);
+    const isMatch = await user.isPasswordCorrect(password);
     if (!isMatch) {
         return res
             .status(400)
@@ -116,12 +119,17 @@ const loginUser = asyncHandler(async (req, res) => {
         sameSite: "strict", // CSRF protection
         maxAge: 15 * 60 * 1000, // 15 minutes
     })
-        .status(200)
+        
+    return res.status(200)
         .json(
-            new ApiResponse(200, { username, email, role }, "Login successful"),
+            new ApiResponse(200, 
+                {
+                    email, 
+                    username: user.username,
+                    fullname: user.fullname
+                }, 
+                "Login successful"),
         );
-
-    return;
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -130,7 +138,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     user.refreshToken = undefined;
     await user.save();
 
-    req.cookie("token", "", {
+    res.cookie("token", "", {
         maxAge: 1,
     });
     return res
@@ -140,22 +148,24 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const verifyEmail = asyncHandler(async (req, res) => {
     const { token } = req.params;
+    console.log(token);
+    
     if (!token) {
-        return res
-            .status(400)
-            .json(new ApiResponse(400, null, "Token not found"));
+        throw new ApiError(400, "Invalid verification token", error);
     }
 
-    const user = User.findOne({
+    const user = await User.findOne({
         emailVerificationToken: token,
         emailVerificationExpiry: { $gt: Date.now() },
     });
 
     if (!user) {
-        return res.status(400).json(new ApiResponse(400, null, "Invalid user"));
+        throw new ApiError(400, "Invalid verification token");
     }
 
     user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
     await user.save();
 
     return res
@@ -309,4 +319,5 @@ export {
     forgotPasswordRequest,
     refreshAccessToken,
     getCurrentUser,
+    isImageUploadedLocal,
 };

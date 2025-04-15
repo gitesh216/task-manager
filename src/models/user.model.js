@@ -96,8 +96,10 @@ userSchema.methods.generateTemporaryToken = function(){
     const hashedToken = crypto.createHash("sha256").update(unHashedToken).digest("hex")
     const tokenExpiry = Date.now() + (20*60*1000) //20min
 
-    return {hashedToken, unHashedToken, tokenExpiry}
+    return { hashedToken, unHashedToken, tokenExpiry }
 
 }
 
-export const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+
+export default User;
