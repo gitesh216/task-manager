@@ -7,35 +7,57 @@ import dotenv from "dotenv";
 import { ApiResponse } from "../utils/api-response.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken"
+import { ApiError } from "../utils/api-error.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js"
 
 dotenv.config();
 
+const isImageUploadedLocal = asyncHandler(async (req, res) => {
+    try{
+        console.log(req.file)
+        res.status(200).json(new ApiResponse(200, req.file, "Avatar file uploaded sucessfully"))
+    }
+    catch(error){
+        console.log(error);
+        throw new ApiError(401, "Avatar file not uploaded", error);
+    }
+})
+
 const registerUser = asyncHandler(async (req, res) => {
-    const { email, username, password, role } = req.body;
+    const { email, username, password, fullname } = req.body;
 
     const existingUser = User.findOne({ email: email });
     if (existingUser) {
-        return res.status(400).json({
-            message: "User already exists",
-        });
+        throw new ApiError(409,"User with email or username already exists")
+    }
+    const avatarImageLocalPath = req.file?.path
+    if(!avatarImageLocalPath){
+        throw new ApiError(400,"Avatar file is required")
+    }
+    const avatar = uploadOnCloudinary(avatarImageLocalPath, "avatars");
+
+    if(!avatar){
+        throw new ApiError(400,"Error while uploading image on Cloudinary");
     }
 
     const newUser = await User.create({
         username,
         email,
         password,
-        role,
+        fullname,
+        avatar: {
+            url: avatar.url,
+            localPath: avatarImageLocalPath
+        }
     });
 
     if (!newUser) {
-        return res.status(400).json({
-            message: "User not registered",
-        });
+        throw new ApiError(400,"User not registered");
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
-    newUser.emailVerificationToken = token;
-    newUser.emailVerificationExpiry = Date.now() + 10 * 60 * 1000;
+    const { unHashedToken, hashedToken, tokenExpiry } = newUser.generateTemporaryToken();
+    newUser.emailVerificationToken = unHashedToken;
+    newUser.emailVerificationExpiry = tokenExpiry;
 
     await newUser.save();
 
@@ -43,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const emailBody = emailVerificationMailGenContent(
         username,
-        `${process.env.BASE_URL}/api/v1/users/verify/${token}`,
+        `${process.env.BASE_URL}/api/v1/users/verify/${unHashedToken}`,
     );
 
     const options = {
@@ -54,10 +76,13 @@ const registerUser = asyncHandler(async (req, res) => {
 
     await sendMail(options);
 
-    return res.status(201).json({
-        message: "User registered successfully",
-        success: true,
-    });
+    const createdUser = User.findById(newUser._id).select(
+        "-password -refreshToken -avatar -emailVerificationToken -emailVerificationExpiry"
+    )
+
+    return res.status(201).json(
+        new ApiResponse(200, createdUser, "User Registered Successfully")
+    );
 });
 
 const loginUser = asyncHandler(async (req, res) => {
