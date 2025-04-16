@@ -21,5 +21,6 @@ router.route("/get-projects").get(getProjects);
 
 router.route("/create").post(isLoggedIn, createProject);
 
+router.route("/add-member").post(isLoggedIn, addMemberToProject)
 
 export default router;
