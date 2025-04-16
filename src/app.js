@@ -12,6 +12,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/healthcheck", healthCheckRouter)
 app.use("/api/v1/users", userRouter)
-app.use("/api/v1/project", userRouter)
+app.use("/api/v1/project", projectRouter)
 
 export default app;
