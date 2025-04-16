@@ -10,7 +10,7 @@ export const isLoggedIn = async (req, res, next) => {
     try {
         console.log(req.cookies)
         // const token = req.cookies?.token
-        const token = req.cookies.token || ""
+        const token = req.cookies.accessToken || ""
 
         console.log("Token Found: ", token ? "Yes" : "No");
 
