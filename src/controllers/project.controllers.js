@@ -125,7 +125,7 @@ const addMemberToProject = asyncHandler(async (req, res) => {
 const getProjectMembers = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     if(!projectId){
-        throw new ApiError(400, "Project Id required");
+        throw new ApiError(401, "Project Id required");
     }
     const members = await ProjectMember.find({ project: projectId });
     if(!members){
@@ -137,17 +137,51 @@ const getProjectMembers = asyncHandler(async (req, res) => {
 });
 
 const updateProjectMembers = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
+    const { email, username, password, role } = req.body;
 });
 
 const updateMemberRole = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
-    
+    const { memberId, role } = req.body;
+    const { projectId } = req.params;
+    if(!memberId || !role){
+        throw new ApiError(401, "Invalid member details");
+    }
+    if(!projectId){
+        throw new ApiError(401, "Project Id required");
+    }
+    const updatedMember = await ProjectMember.findByIdAndUpdate(
+        memberId,
+        {
+            role: role
+        },
+        {
+            new: true
+        }
+    );
+    if(!updatedMember){
+        throw new ApiError(500, "Member not updated")
+    }
+    return res.status(200).json(
+        new ApiResponse(200, updatedMember, "Member role updated successfully")
+    );
 });
 
 const deleteMember = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
-
+    const { memberId } = req.body;
+    const { projectId } = req.params;
+    if(!memberId){
+        throw new ApiError(401, "Member Id is required")
+    }
+    if(!projectId){
+        throw new ApiError(401, "Project Id is required")
+    }
+    const deleteMember = await ProjectMember.findByIdAndDelete(memberId);
+    if(!deleteMember){
+        throw new ApiError(401, "Error in deleting member")
+    }
+    return res.status(200).json(
+        new ApiResponse(200, deleteMember, "Project member deleted successfully")
+    );
 }); 
 
 
