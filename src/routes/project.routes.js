@@ -25,7 +25,7 @@ router.route("/add-member").post(isLoggedIn, addMemberToProject)
 
 router.route("/get-byId/:projectId").get(isLoggedIn, getProjectById)
 
-router.route("/update").post(isLoggedIn, updateProject)
+router.route("/update/:projectId").post(isLoggedIn, updateProject)
 
 
 export default router;
