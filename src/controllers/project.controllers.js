@@ -123,13 +123,21 @@ const addMemberToProject = asyncHandler(async (req, res) => {
 });
 
 const getProjectMembers = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
- 
+    const { projectId } = req.params;
+    if(!projectId){
+        throw new ApiError(400, "Project Id required");
+    }
+    const members = await ProjectMember.find({ project: projectId });
+    if(!members){
+        throw new ApiError(401, "Project members not found")
+    }
+    return res.status(200).json(
+        new ApiResponse(200, members, "Project members fetched successfully")
+    )
 });
 
 const updateProjectMembers = asyncHandler(async (req, res) => {
     const {email, username, password, role} = req.body;
- 
 });
 
 const updateMemberRole = asyncHandler(async (req, res) => {
