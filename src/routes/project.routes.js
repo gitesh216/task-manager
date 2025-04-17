@@ -17,7 +17,7 @@ import { isLoggedIn } from "../middlewares/auth.middleware.js"
 const router = Router();
 
 
-router.route("/get-projects").get(getProjects);
+router.route("/get-projects").get(isLoggedIn, getProjects);
 
 router.route("/create").post(isLoggedIn, createProject);
 

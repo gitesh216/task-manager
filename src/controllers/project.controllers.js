@@ -2,20 +2,23 @@ import { asyncHandler } from "../utils/async-handler.js"
 import { Project } from "../models/project.model.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
-import { User } from "../models/user.model.js"
+import User from "../models/user.model.js"
+import { ProjectMember } from "../models/projectmember.model.js"
+import { UserRolesEnum } from "../utils/constants.js"
 
 const getProjects = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
-    //output:
-    // project names
-    // description
-    // count of members
-    // when created
+    const currUserId = req.user._id;
+    const memberProjects = await ProjectMember.find({user: currUserId}).populate("project");
+    
+    const projects = memberProjects.map(m => m.project)
+    
+    res.status(200).json(
+        new ApiResponse(201, projects, "Projects fetched successfully")
+    );
 });
 
 const getProjectById = asyncHandler(async (req, res) => {
     const {email, username, password, role} = req.body;
-
 });
 
 const createProject = asyncHandler(async (req, res) => {
@@ -30,9 +33,10 @@ const createProject = asyncHandler(async (req, res) => {
         description: projectDescription,
         createdBy: req.user._id
     })
-    newProject.members.push({
+    const member = await ProjectMember.create({
         user: req.user._id,
-        role: "admin"
+        project: newProject._id,
+        role: UserRolesEnum.PROJECT_ADMIN
     })
     await newProject.save();
     return res.status(201).json(
