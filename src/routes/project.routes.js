@@ -27,5 +27,6 @@ router.route("/get-byId/:projectId").get(isLoggedIn, getProjectById)
 
 router.route("/update/:projectId").post(isLoggedIn, updateProject)
 
+router.route("/delete/:projectId").get(isLoggedIn, deleteProject)
 
 export default router;
