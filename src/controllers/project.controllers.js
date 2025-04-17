@@ -10,7 +10,7 @@ const getProjects = asyncHandler(async (req, res) => {
     const currUserId = req.user._id;
     const memberProjects = await ProjectMember.find({user: currUserId}).populate("project");
     
-    const projects = memberProjects.map(m => m.project)
+    const projects = memberProjects.map(m => m.project);
     
     res.status(200).json(
         new ApiResponse(201, projects, "Projects fetched successfully")
@@ -18,7 +18,14 @@ const getProjects = asyncHandler(async (req, res) => {
 });
 
 const getProjectById = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId)
+    if(!project){
+        throw new ApiError(401, "Project not found")
+    }
+    return res.status(201).json(
+        new ApiResponse(201, project, "Project fetch suceessfull")
+    )
 });
 
 const createProject = asyncHandler(async (req, res) => {
@@ -45,7 +52,7 @@ const createProject = asyncHandler(async (req, res) => {
 });
 
 const updateProject = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
+    const {  } = req.body;
     
 });
 

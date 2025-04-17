@@ -17,10 +17,15 @@ import { isLoggedIn } from "../middlewares/auth.middleware.js"
 const router = Router();
 
 
-router.route("/get-projects").get(isLoggedIn, getProjects);
+router.route("/get-projects").get(isLoggedIn, getProjects)
 
-router.route("/create").post(isLoggedIn, createProject);
+router.route("/create").post(isLoggedIn, createProject)
 
 router.route("/add-member").post(isLoggedIn, addMemberToProject)
+
+router.route("/get-byId/:projectId").get(isLoggedIn, getProjectById)
+
+router.route("/update").post(isLoggedIn, updateProject)
+
 
 export default router;
