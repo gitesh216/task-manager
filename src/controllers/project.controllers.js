@@ -89,28 +89,33 @@ const deleteProject = asyncHandler(async (req, res) => {
 
 const addMemberToProject = asyncHandler(async (req, res) => {
     const { email, role } = req.body;
-    const userToAdd = await User.findOne({email})
-    if(!userToAdd){
-        throw new ApiError(404, `User with ${email} email not found`)
-    }
+    const { projectId } = req.params;
 
-    const project = await Project.find({ createdBy: req.user._id });
+    const project = await Project.findById(projectId);
     if(!project){
         throw new ApiError(404, "Prokect not found")
     }
 
+    if (project.createdBy.toString() !== req.user.userId) {
+        throw new ApiError(403, "Only the project creator can add members");
+    }
+
+    const userToAdd = await User.findOne({ email })
+    if(!userToAdd){
+        throw new ApiError(404, `User with ${email} email not found`)
+    }
+
     // Check if user is already a member
-    const isAlreadyMember = project.members.some(
-        (member) => member.user.toString() === userToAdd._id.toString()
-    );
+    const isAlreadyMember = await ProjectMember.findById(userToAdd._id)
     if (isAlreadyMember) {
         throw new ApiError(400, "User is already a member of this project.");
     }
-    project.members.push({
+    const newMember = await ProjectMember.create({
         user: userToAdd._id,
+        project: projectId,
         role: role
-    })
-    await project.save();
+    });
+    await newMember.save();
 
     return res
       .status(200)
@@ -134,7 +139,7 @@ const updateMemberRole = asyncHandler(async (req, res) => {
 
 const deleteMember = asyncHandler(async (req, res) => {
     const {email, username, password, role} = req.body;
- 
+
 }); 
 
 

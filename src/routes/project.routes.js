@@ -29,4 +29,6 @@ router.route("/update/:projectId").post(isLoggedIn, updateProject)
 
 router.route("/delete/:projectId").get(isLoggedIn, deleteProject)
 
+router.route("/add-member/:projectId").post(isLoggedIn, addMemberToProject)
+
 export default router;
