@@ -16,19 +16,6 @@ const projectSchema = new Schema(
             ref: "User",
             required: true,
         },
-        members: [
-            {
-                user: {
-                    type: Schema.Types.ObjectId,
-                    ref: "User",
-                },
-                role: {
-                    type: String,
-                    enum: ["admin", "editor", "viewer"],
-                    default: "viewer",
-                },
-            },
-        ],
     },
     { timestamps: true },
 );
